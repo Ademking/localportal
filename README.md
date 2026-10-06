@@ -55,7 +55,7 @@ localportal python.org
 
 Press `Ctrl+C` to stop. Every request is logged as it happens:
 
-```
+```text
   localportal is mirroring https://www.python.org
   Open  http://127.0.0.1:3000/
   Press Ctrl+C to stop.
@@ -67,27 +67,89 @@ Press `Ctrl+C` to stop. Every request is logged as it happens:
 
 ## What it's good for
 
-- **Local development against a real site.** Work on a frontend or browser extension while a staging or production site appears to run on localhost.
-- **Testing and automation.** Point Playwright, Selenium, Lighthouse or your scripts at a stable local address.
-- **Debugging.** Every request passes through one place you control, so you can see exactly what the browser asks for.
-- **Sharing on your network.** Run with `--bind 0.0.0.0` and other devices on your LAN can open the mirror.
-- **Demos.** Show a site on a local address, with extra headers (such as an auth token) added to every request.
+* **Local development against a real site.** Work on a frontend or browser extension while a staging or production site appears to run on localhost.
+* **Testing and automation.** Point Playwright, Selenium, Lighthouse or your scripts at a stable local address.
+* **Debugging.** Every request passes through one place you control, so you can see exactly what the browser asks for.
+* **Sharing on your network.** Run with `--bind 0.0.0.0` and other devices on your LAN can open the mirror.
+* **Demos.** Show a site on a local address, with extra headers (such as an auth token) added to every request.
+
+## AI-Assisted Security Testing
+
+LocalPortal can also be useful when working with **AI-powered security tools and coding agents**.
+
+Some AI systems apply additional restrictions when asked to interact with or test a public website directly. For example, a request such as:
+
+```text
+Perform a security assessment of https://staging.example.com
+```
+
+may be restricted because the target is a remote, publicly accessible website.
+
+With LocalPortal, an authorized target can instead be exposed through a local address:
+
+```bash
+localportal -u https://staging.example.com
+```
+
+The AI tool can then interact with:
+
+```text
+http://127.0.0.1:3000
+```
+
+while LocalPortal transparently forwards the requests to the original website.
+
+```text
+┌────────────────┐
+│   AI / Browser  │
+└───────┬────────┘
+        │
+        │ http://127.0.0.1:3000
+        ▼
+┌────────────────┐
+│  LocalPortal   │
+└───────┬────────┘
+        │
+        │ HTTPS proxy
+        ▼
+┌──────────────────────┐
+│   Original Website   │
+│ https://example.com  │
+└──────────────────────┘
+```
+
+### The important distinction
+
+**LocalPortal does not clone the website or make the remote application actually local.**
+
+The backend, database, authentication and server-side application remain on the original infrastructure. LocalPortal simply provides a **localhost interface** to that remote application.
+
+In other words:
+
+```text
+localhost ≠ local copy
+localhost = local interface → remote application
+```
+
+This can be useful for authorized security testing, browser automation, debugging and AI-assisted workflows where the tooling behaves differently depending on whether the target is presented as a local or remote application.
+
+> **Authorization is still required.** LocalPortal does not provide permission to test a website or bypass access controls. Only use it with applications you own or have explicit permission to assess.
 
 ## Options
 
-| Option | Description |
-| --- | --- |
-| `-u, --url URL` | Website to mirror. The scheme is optional. |
-| `-p, --port PORT` | Local port. Default: `3000`. |
-| `-b, --bind ADDR` | Address to listen on. Default: `127.0.0.1`. Use `0.0.0.0` to share on your LAN. |
-| `-H, --header 'NAME: VALUE'` | Extra header to send upstream. Repeatable. |
-| `--no-rewrite` | Leave absolute links in response bodies untouched. |
-| `--no-resolve` | Don't follow the startup `www`/`https` redirect. |
-| `--forward-headers` | Send `X-Forwarded-For`, `X-Real-IP` and `X-Forwarded-Proto` upstream. |
-| `-k, --insecure` | Don't verify the upstream TLS certificate (for self-signed staging servers). |
-| `-o, --open` | Open the mirror in your browser. |
-| `-q, --quiet` | Don't log each request. |
-| `-V, --version` | Print the version. |
+| Option                       | Description                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `-u, --url URL`              | Website to mirror. The scheme is optional.                                      |
+| `-p, --port PORT`            | Local port. Default: `3000`.                                                    |
+| `-b, --bind ADDR`            | Address to listen on. Default: `127.0.0.1`. Use `0.0.0.0` to share on your LAN. |
+| `-H, --header 'NAME: VALUE'` | Extra header to send upstream. Repeatable.                                      |
+| `--no-rewrite`               | Leave absolute links in response bodies untouched.                              |
+| `--no-resolve`               | Don't follow the startup `www`/`https` redirect.                                |
+| `--forward-headers`          | Send `X-Forwarded-For`, `X-Real-IP` and `X-Forwarded-Proto` upstream.           |
+| `-k, --insecure`             | Don't verify the upstream TLS certificate (for self-signed staging servers).    |
+| `-o, --open`                 | Open the mirror in your browser.                                                |
+| `-q, --quiet`                | Don't log each request.                                                         |
+| `-V, --version`              | Print the version.                                                              |
 
 More examples:
 
@@ -107,7 +169,7 @@ python -m localportal -u https://example.com
 
 ## How it works
 
-```
+```text
  browser                     localportal                         real site
  http://127.0.0.1:3000  ──▶  rewrite Host, Origin, Referer  ──▶  https://example.com
                         ◀──  rewrite links, cookies, headers ◀──
@@ -115,16 +177,16 @@ python -m localportal -u https://example.com
 
 Each request is replayed against the real site with the site's own `Host` header and TLS SNI. Then the response is adjusted so the browser keeps treating the mirror as the site:
 
-| Without localportal | What localportal does |
-| --- | --- |
-| Redirects send you to the real site | `Location`, `Content-Location`, `Link` and `Refresh` headers are rewritten to point at the mirror |
-| Absolute links (`https://site/…`, `//site/…`, `https:\/\/site` in JSON) leave the mirror | They are rewritten in HTML, CSS, JS, JSON, XML and SVG |
-| Cookies with `Domain=site` and `Secure` are rejected on plain http | Those attributes are removed so logins keep working (`__Host-` and `__Secure-` cookies keep `Secure`) |
-| HSTS, CSP `upgrade-insecure-requests` and Alt-Svc force HTTPS | These headers are dropped, along with `<meta>` CSP tags and the SRI `integrity` attributes that rewriting would invalidate |
-| The server's CSRF checks reject the wrong `Origin` or `Referer` | Both are rewritten back to the real site on the way out |
-| `example.com` redirects to `www.example.com`, creating a redirect loop | The canonical host is detected once at startup |
-| WebSockets don't pass through | They are proxied in both directions, with subprotocols |
-| Large files get buffered | Video, downloads and Server-Sent Events are streamed, and Range requests work |
+| Without localportal                                                                      | What localportal does                                                                                                      |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Redirects send you to the real site                                                      | `Location`, `Content-Location`, `Link` and `Refresh` headers are rewritten to point at the mirror                          |
+| Absolute links (`https://site/…`, `//site/…`, `https:\/\/site` in JSON) leave the mirror | They are rewritten in HTML, CSS, JS, JSON, XML and SVG                                                                     |
+| Cookies with `Domain=site` and `Secure` are rejected on plain http                       | Those attributes are removed so logins keep working (`__Host-` and `__Secure-` cookies keep `Secure`)                      |
+| HSTS, CSP `upgrade-insecure-requests` and Alt-Svc force HTTPS                            | These headers are dropped, along with `<meta>` CSP tags and the SRI `integrity` attributes that rewriting would invalidate |
+| The server's CSRF checks reject the wrong `Origin` or `Referer`                          | Both are rewritten back to the real site on the way out                                                                    |
+| `example.com` redirects to `www.example.com`, creating a redirect loop                   | The canonical host is detected once at startup                                                                             |
+| WebSockets don't pass through                                                            | They are proxied in both directions, with subprotocols                                                                     |
+| Large files get buffered                                                                 | Video, downloads and Server-Sent Events are streamed, and Range requests work                                              |
 
 ### Compared with nginx
 
@@ -175,11 +237,11 @@ To embed it in your own aiohttp server or tests, `LocalPortal(...).make_app()` r
 
 ## Limitations
 
-- **Only the main host is mirrored**, plus its `www.` version. Subdomains such as `cdn.example.com` and `api.example.com`, and third-party hosts, load directly from the internet. That's fine for public assets, but cross-origin APIs that check `Origin` may refuse requests from the mirror.
-- **URLs built at runtime** by JavaScript (`"https://" + host`) can't be rewritten ahead of time.
-- **Third-party sign-in** (Google, GitHub, etc.) usually fails, because the provider redirects back to the real domain.
-- **One origin per port.** Every site you mirror on the same port shares cookies, storage and service workers. Use a different port for each site, or clear the site data when you switch.
-- **Bot protection** (Cloudflare challenges, CAPTCHAs) sees ordinary traffic from your IP and may still challenge you.
+* **Only the main host is mirrored**, plus its `www.` version. Subdomains such as `cdn.example.com` and `api.example.com`, and third-party hosts, load directly from the internet. That's fine for public assets, but cross-origin APIs that check `Origin` may refuse requests from the mirror.
+* **URLs built at runtime** by JavaScript (`"https://" + host`) can't be rewritten ahead of time.
+* **Third-party sign-in** (Google, GitHub, etc.) usually fails, because the provider redirects back to the real domain.
+* **One origin per port.** Every site you mirror on the same port shares cookies, storage and service workers. Use a different port for each site, or clear the site data when you switch.
+* **Bot protection** (Cloudflare challenges, CAPTCHAs) sees ordinary traffic from your IP and may still challenge you.
 
 Only mirror sites you're allowed to access, and respect their terms of service.
 

@@ -10,6 +10,7 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/localportal-cli/"><img src="https://img.shields.io/pypi/v/localportal-cli?color=7C3AED" alt="PyPI"></a>
   <img src="https://img.shields.io/badge/python-3.9%2B-7C3AED" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/license-MIT-7C3AED" alt="MIT license">
   <img src="https://img.shields.io/badge/dependency-aiohttp-7C3AED" alt="Only dependency: aiohttp">
@@ -28,8 +29,10 @@ It does the same job as an nginx `proxy_pass` block, without installing nginx or
 ## Install
 
 ```bash
-pip install localportal
+pip install localportal-cli
 ```
+
+This installs the `localportal` command and the `localportal` Python module.
 
 To install the latest version straight from GitHub:
 

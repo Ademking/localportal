@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "localportal"
+name = "localportal-cli"
 version = "0.1.0"
 description = "Mirror any website on 127.0.0.1 through a local reverse proxy."
 readme = "README.md"

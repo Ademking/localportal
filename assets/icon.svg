@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="localportal">
+  <rect width="256" height="256" rx="60" fill="#1C1A3A"/>
+  <ellipse cx="120" cy="128" rx="58" ry="90" fill="#8B5CF6"/>
+  <ellipse cx="133" cy="128" rx="40" ry="76" fill="#1C1A3A"/>
+  <path d="M150 98 182 128 150 158" fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
